@@ -1,0 +1,12 @@
+{
+  "name": "camljava",
+  "version": "0.0.0",
+  "esy": {
+    "build": "dune build -p camljava",
+    "install": "esy-installer camljava.install"
+  },
+  "dependencies": {
+    "@opam/dune": "*",
+    "ocaml": "*"
+  }
+}

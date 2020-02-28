@@ -692,6 +692,17 @@ value camljava_SetByteArrayRegion(value vstr, value vsrcidx,
 
 /************************ Initialization *************************/
 
+JNIEXPORT jint JNI_OnLoad(JavaVM * vm, void* reserved) {
+  jvm = vm;
+
+  if ((*vm)->GetEnv(vm, &jenv, JNI_VERSION_1_6) != JNI_OK) {
+    return JNI_ERR;
+  }
+  init_threading();
+
+  return JNI_VERSION_1_6;
+}
+
 value camljava_Init(value vclasspath)
 {
   JavaVMInitArgs vm_args;
@@ -711,7 +722,9 @@ value camljava_Init(value vclasspath)
   vm_args.nOptions = 1;
   vm_args.ignoreUnrecognized = 1;
   /* Load and initialize a Java VM, return a JNI interface pointer in env */
-  retcode = JNI_CreateJavaVM(&jvm, (void **) &jenv, &vm_args);
+
+  // TODO: enables to instantiate a Java engine
+  // retcode = JNI_CreateJavaVM(&jvm, (void **) &jenv, &vm_args);
   stat_free(classpath);
   if (retcode < 0) failwith("Java.init");
   init_threading(); // by O'Jacare

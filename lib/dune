@@ -1,0 +1,6 @@
+(library
+ (name camljava)
+ (wrapped false)
+ (public_name camljava.lib)
+ (c_names jnistubs)
+)

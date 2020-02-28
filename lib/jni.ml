@@ -21,21 +21,6 @@ external set_string_auto_conv: bool -> unit = "camljava_set_strconv"
 external init: string -> unit = "camljava_Init"
 external shutdown: unit -> unit = "camljava_Shutdown"
 
-let _ =
-  let libpath = "%PATH%" in  
-  let sep =
-    match Sys.os_type with
-      "Unix" -> ":"
-    | "Win32" -> ";"
-    | _ -> assert false in
-  let path =
-    try
-      Sys.getenv "CLASSPATH" ^ sep ^ libpath
-    with Not_found ->
-      libpath in
-  init path;
-  at_exit shutdown
-
 type obj
 
 external get_null: unit -> obj = "camljava_GetNull"
@@ -373,3 +358,17 @@ let wrap_object camlobj =
   call_nonvirtual_void_method javaobj callback_class callback_init
                               [|Long (wrap_caml_object camlobj)|];
   javaobj
+
+let start_vm libpath =
+  let sep =
+    match Sys.os_type with
+      "Unix" -> ":"
+    | "Win32" -> ";"
+    | _ -> assert false in
+  let path =
+    try
+      Sys.getenv "CLASSPATH" ^ sep ^ libpath
+    with Not_found ->
+      libpath in
+  init path;
+  at_exit shutdown
