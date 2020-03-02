@@ -55,8 +55,12 @@ static value alloc_jobject(jobject obj)
 {
   value v = alloc_custom(&jobject_ops, sizeof(jobject), 0, 1);
   if (obj != NULL) {
-    obj = (*jenv)->NewGlobalRef(jenv, obj);
-    if (obj == NULL) raise_out_of_memory();
+    jobject g_obj = (*jenv)->NewGlobalRef(jenv, obj);
+    if (g_obj == NULL) raise_out_of_memory();
+
+    (*jenv)->DeleteLocalRef(jenv, obj);
+
+    obj = g_obj;
   }
   JObject(v) = obj;
   return v;
