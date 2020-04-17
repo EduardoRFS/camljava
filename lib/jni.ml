@@ -359,6 +359,12 @@ let wrap_object camlobj =
                               [|Long (wrap_caml_object camlobj)|];
   javaobj
 
+let callback_to_java: (obj list -> obj) -> obj =
+  fun f -> wrap_object (object method closure objs = f objs end)
+
+let callback_void_to_java: (obj list -> unit) -> obj =
+  fun f -> wrap_object (object method closure objs = f objs end)
+
 let start_vm libpath =
   let sep =
     match Sys.os_type with

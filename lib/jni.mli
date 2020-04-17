@@ -361,3 +361,5 @@ external set_double_array_element: obj -> int -> float -> unit
 
 val wrap_object: < .. > -> obj
 
+val callback_to_java: (obj list -> obj) -> obj
+val callback_void_to_java: (obj list -> unit) -> obj
