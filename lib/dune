@@ -1,6 +1,12 @@
 (library
  (name camljava)
- (wrapped false)
  (public_name camljava.lib)
- (c_names jnistubs)
-)
+ (foreign_stubs
+  (language c)
+  (names jnistubs)
+  (flags (:include c_flags.sexp))))
+
+(rule
+ (targets c_flags.sexp)
+ (deps (:discover discover.sh))
+ (action (run sh %{discover})))

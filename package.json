@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@opam/dune": "*",
+    "@opam/ocamlformat": "0.14.2",
     "ocaml": "*"
   }
 }
