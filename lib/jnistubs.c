@@ -1013,3 +1013,29 @@ void siglongjmp(sigjmp_buf env, int val)
 }
 
 #endif
+
+// Implementation of Caml.startup
+// Cannot be registered with camljava_RegisterNatives
+//  because it may be called before camljava_RegisterNatives
+void Java_fr_inria_caml_camljava_Caml_startup(JNIEnv * env, jclass cls, jobjectArray jargv)
+{
+  jenv = env;
+  init_threading();
+  {
+    jsize argc = (*env)->GetArrayLength(env, jargv);
+    // Dup jargv before because
+    // caml_startup keep a reference to argv for ever
+    char **argv;
+    jsize i;
+    argv = malloc(sizeof(char*) * ((*env)->GetArrayLength(env, jargv) + 1));
+    for (i = 0; i < argc; i++)
+    {
+      jbyteArray arg = (*env)->GetObjectArrayElement(env, jargv, i);
+      argv[i] = strdup((*env)->GetStringUTFChars(env, arg, NULL));
+      (*env)->ReleaseStringUTFChars(env, arg, argv[i]);
+    }
+    argv[i] = NULL;
+    // TODO: caml_startup_exn
+    caml_startup(argv);
+  }
+}
