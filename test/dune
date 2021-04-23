@@ -1,0 +1,18 @@
+(executable
+ (name jnitest)
+ (libraries camljava))
+
+(rule
+ (alias runtest)
+ (deps ./jnitest.exe ./Test.class ./Testcb.class)
+ (action
+  (setenv
+   CLASSPATH
+   "%{dep:../lib/camljava.jar}:."
+   (run ./jnitest.exe))))
+
+(rule
+ (deps Test.java Testcb.java)
+ (targets Test.class Testcb.class)
+ (action
+  (run javac -g -classpath "%{dep:../lib/camljava.jar}:." %{deps})))

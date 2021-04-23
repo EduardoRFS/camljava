@@ -1,4 +1,4 @@
-open Jni
+open Camljava.Jni
 
 class cls = object
   method f = print_string "cls.f called"; print_newline()
