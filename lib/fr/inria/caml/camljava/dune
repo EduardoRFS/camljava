@@ -1,71 +1,29 @@
 (rule
- (deps Boolean.java)
- (target Boolean.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Byte.java)
- (target Byte.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Callback.java)
- (target Callback.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Camlint.java)
- (target Camlint.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Char.java)
- (target Char.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Double.java)
- (target Double.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Exception.java)
- (target Exception.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Float.java)
- (target Float.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Int.java)
- (target Int.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Long.java)
- (target Long.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Readclass.java)
- (target Readclass.class)
- (action
-  (run javac -g %{deps})))
-
-(rule
- (deps Short.java)
- (target Short.class)
+ (deps
+  Boolean.java
+  Byte.java
+  Callback.java
+  Camlint.java
+  Char.java
+  Double.java
+  Exception.java
+  Float.java
+  Int.java
+  Long.java
+  Readclass.java
+  Short.java)
+ (targets
+  Boolean.class
+  Byte.class
+  Callback.class
+  Camlint.class
+  Char.class
+  Double.class
+  Exception.class
+  Float.class
+  Int.class
+  Long.class
+  Readclass.class
+  Short.class)
  (action
   (run javac -g %{deps})))

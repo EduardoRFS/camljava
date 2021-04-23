@@ -10,13 +10,22 @@
  (library_flags
   (:standard
    -linkall
-   (:include c_library_flags.sexp))))
+   (:include library_flags.sexp))))
 
 (rule
- (deps jni.mlp ../Makefile.config ./Makefile)
- (targets jni.ml c_flags.sexp c_library_flags.sexp)
+ (targets c_flags.sexp library_flags.sexp)
+ (deps
+  (:discover config/discover.exe))
  (action
-  (run make OCAMLLIB='%{ocaml-config:standard_library}' %{targets})))
+  (run %{discover})))
+
+(rule
+ (deps jni.mlp)
+ (targets jni.ml)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run sed -e "s|%PATH%|'$(CAMLJAVALIB)/camljava.jar'|" %{deps}))))
 
 (rule
  (deps
@@ -25,8 +34,3 @@
  (target camljava.jar)
  (action
   (run jar cf %{target} %{class})))
-
-(install
- (section lib)
- (files
-  (camljava.jar as camljava.jar)))
