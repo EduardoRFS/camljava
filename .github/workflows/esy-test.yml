@@ -1,0 +1,46 @@
+name: Camljava
+
+on: [push, pull_request]
+
+jobs:
+  build_and_test:
+    name: Build and test
+
+    strategy:
+      matrix:
+        system: [ubuntu, macos, windows]
+        ocaml: ["4.8.x", "4.12.x"]
+
+    runs-on: ${{ matrix.system }}-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14
+
+      - name: Install esy
+        run: npm install -g esy
+
+      - name: Create esy wrapper
+        run: |
+          echo '{
+            "source": "./camljava.opam",
+            "override": {
+              "devDependencies": {
+                "ocaml": "${{ matrix.ocaml }}"
+              }
+            }
+          }' > esy.json
+
+      - name: Create lock
+        run: esy solve
+
+      - uses: esy/github-action@v1
+        with:
+          cache-key: ${{ matrix.target }}-${{ hashFiles('esy.lock/index.json') }}
+
+      - name: Run tests
+        run: esy dune test
