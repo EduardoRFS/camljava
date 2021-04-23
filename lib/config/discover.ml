@@ -35,6 +35,13 @@ module OS = struct
 end
 
 module Jdk_home = struct
+  let rec find_map f = function
+    | [] -> None
+    | x :: l -> (
+        match f x with
+        | Some _ as result -> result
+        | None -> find_map f l)
+
   let find_java_home t =
     (* find JAVA_HOME using the java command *)
     let Process.{ stderr; _ } =
@@ -42,7 +49,7 @@ module Jdk_home = struct
     in
     stderr
     |> String.split_on_char '\n'
-    |> List.find_map (fun line ->
+    |> find_map (fun line ->
            match String.split_on_char '=' line with
            | [ key; value ] when String.trim key = "java.home" ->
                Some (String.trim value)
@@ -94,7 +101,7 @@ let c_flags = jni_includes
 
 let library_flags jdk_home =
   let ccopt flag = [ "-ccopt"; flag ] in
-  let jni_lib_opts = List.concat_map ccopt (jni_lib_opts jdk_home) in
+  let jni_lib_opts = List.map ccopt (jni_lib_opts jdk_home) |> List.flatten in
   jni_lib_opts @ [ "-cclib"; "-ljvm" ]
 
 let generate_flags t =
