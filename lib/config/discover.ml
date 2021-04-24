@@ -66,11 +66,29 @@ module Jdk_home = struct
     | None -> (
         match find_java_home t with
         | Some java_home ->
+            (* up to java 8, all versions had /jre for the JAVA_HOME*)
             let jre_suffix = Filename.dir_sep ^ "jre" in
             if Filename.check_suffix java_home jre_suffix then
               Filename.chop_suffix java_home jre_suffix
             else java_home
         | None -> failwith "JDK_HOME not found")
+end
+
+module Jdk_version = struct
+  let find_jdk_version t =
+    let Process.{ stdout; stderr; _ } = Process.run t "javac" [ "-version" ] in
+    let stdout_and_stderr = String.trim stdout ^ String.trim stderr in
+    match String.split_on_char ' ' stdout_and_stderr with
+    | [ "javac"; version ] -> (
+        match String.split_on_char '.' version with
+        | "1" :: n :: _ | n :: _ -> int_of_string_opt n
+        | _ -> None)
+    | _ -> None
+
+  let get_jdk_version t =
+    match find_jdk_version t with
+    | Some version -> version
+    | None -> failwith "JDK version not found"
 end
 
 let jni_includes os jdk_home =
@@ -82,32 +100,42 @@ let jni_includes os jdk_home =
   in
   [ "-I" ^ (jdk_home / "include"); "-I" ^ (jdk_home / "include" / os) ]
 
-let jni_lib_opts jdk_home =
-  let mk_flags lib =
-    [
-      "-L" ^ lib;
-      "-L" ^ (lib / "server");
-      "-Wl,-rpath," ^ lib;
-      "-Wl,-rpath," ^ (lib / "server");
-      "-Wl,-rpath," ^ (lib / "native_threads");
-    ]
+let jni_lib_opts jdk_version jdk_home =
+  let adds_arch_if_needed path =
+    let arch = Config.architecture in
+    match Unix.stat (path / arch) with
+    | _ -> path / arch
+    | exception _ -> path
   in
-  let arch = Config.architecture in
-  let lib = jdk_home / "jre" / "lib" in
-  (* some distros like archlinux uses also lib/amd64 *)
-  mk_flags lib @ mk_flags (lib / arch)
+  let lib =
+    match jdk_version with
+    | n when n <= 8 -> adds_arch_if_needed (jdk_home / "jre" / "lib")
+    | 9 -> adds_arch_if_needed (jdk_home / "lib")
+    (* OpenJDK 10 and above *)
+    | _ -> jdk_home / "lib"
+  in
+  [
+    "-L" ^ lib;
+    "-L" ^ (lib / "server");
+    "-Wl,-rpath," ^ lib;
+    "-Wl,-rpath," ^ (lib / "server");
+    "-Wl,-rpath," ^ (lib / "native_threads");
+  ]
 
 let c_flags = jni_includes
 
-let library_flags jdk_home =
+let library_flags jdk_version jdk_home =
   let ccopt flag = [ "-ccopt"; flag ] in
-  let jni_lib_opts = List.map ccopt (jni_lib_opts jdk_home) |> List.flatten in
+  let jni_lib_opts =
+    List.map ccopt (jni_lib_opts jdk_version jdk_home) |> List.flatten
+  in
   jni_lib_opts @ [ "-cclib"; "-ljvm" ]
 
 let generate_flags t =
   let os = OS.get_os t in
+  let jdk_version = Jdk_version.get_jdk_version t in
   let jdk_home = Jdk_home.get_jdk_home t in
   Flags.write_sexp "c_flags.sexp" (c_flags os jdk_home);
-  Flags.write_sexp "library_flags.sexp" (library_flags jdk_home)
+  Flags.write_sexp "library_flags.sexp" (library_flags jdk_version jdk_home)
 
 let () = Configurator.V1.main ~name:"camljava_discover" generate_flags
