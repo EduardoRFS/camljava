@@ -55,23 +55,23 @@ module Jdk_home = struct
                Some (String.trim value)
            | _ -> None)
 
-  let ends_with ~pat str =
-    let pat_length = String.length pat in
-    let length = String.length str in
-    pat = String.sub str (length - pat_length) pat_length
-
-  let get_jdk_home t =
+  let find_jdk_home t =
     match Sys.getenv_opt "JDK_HOME" with
-    | Some jdk_home -> jdk_home
+    | Some jdk_home -> Some jdk_home
     | None -> (
         match find_java_home t with
         | Some java_home ->
             (* up to java 8, all versions had /jre for the JAVA_HOME*)
             let jre_suffix = Filename.dir_sep ^ "jre" in
             if Filename.check_suffix java_home jre_suffix then
-              Filename.chop_suffix java_home jre_suffix
-            else java_home
-        | None -> failwith "JDK_HOME not found")
+              Some (Filename.chop_suffix java_home jre_suffix)
+            else Some java_home
+        | None -> None)
+
+  let get_jdk_home t =
+    match find_jdk_home t with
+    | Some jdk_home -> jdk_home
+    | None -> failwith "JDK_HOME not found"
 end
 
 module Jdk_version = struct
@@ -100,42 +100,56 @@ let jni_includes os jdk_home =
   in
   [ "-I" ^ (jdk_home / "include"); "-I" ^ (jdk_home / "include" / os) ]
 
-let jni_lib_opts jdk_version jdk_home =
-  let adds_arch_if_needed path =
-    let arch = Config.architecture in
-    match Unix.stat (path / arch) with
-    | _ -> path / arch
-    | exception _ -> path
-  in
+let ccopt flag = [ "-ccopt"; flag ]
+
+let cclib flag = [ "-cclib"; flag ]
+
+let jni_lib_opts os jdk_version jdk_home =
   let lib =
+    let adds_arch_if_needed path =
+      let arch = Config.architecture in
+      match Unix.stat (path / arch) with
+      | _ -> path / arch
+      | exception _ -> path
+    in
+    let lib =
+      match os with
+      | Linux | Mac -> "lib"
+      | Windows -> "bin"
+    in
     match jdk_version with
-    | n when n <= 8 -> adds_arch_if_needed (jdk_home / "jre" / "lib")
-    | 9 -> adds_arch_if_needed (jdk_home / "lib")
+    | n when n <= 8 -> adds_arch_if_needed (jdk_home / "jre" / lib)
+    | 9 -> adds_arch_if_needed (jdk_home / lib)
     (* OpenJDK 10 and above *)
-    | _ -> jdk_home / "lib"
+    | _ -> jdk_home / lib
   in
-  [
-    "-L" ^ lib;
-    "-L" ^ (lib / "server");
-    "-Wl,-rpath," ^ lib;
-    "-Wl,-rpath," ^ (lib / "server");
-    "-Wl,-rpath," ^ (lib / "native_threads");
-  ]
+  let rpath path =
+    let arg = "-Wl,-rpath," ^ path in
+    match os with
+    | Linux | Mac -> [ arg ]
+    | Windows -> [ "-link"; arg ]
+  in
+  [ "-L" ^ lib; "-L" ^ (lib / "server") ]
+  @ rpath lib
+  @ rpath (lib / "server")
+  @ rpath (lib / "native_threads")
 
 let c_flags = jni_includes
 
-let library_flags jdk_version jdk_home =
-  let ccopt flag = [ "-ccopt"; flag ] in
+let library_flags os jdk_version jdk_home =
   let jni_lib_opts =
-    List.map ccopt (jni_lib_opts jdk_version jdk_home) |> List.flatten
+    jni_lib_opts os jdk_version jdk_home
+    |> List.map Filename.quote
+    |> List.map ccopt
+    |> List.flatten
   in
-  jni_lib_opts @ [ "-cclib"; "-ljvm" ]
+  jni_lib_opts @ cclib "-ljvm"
 
 let generate_flags t =
   let os = OS.get_os t in
   let jdk_version = Jdk_version.get_jdk_version t in
   let jdk_home = Jdk_home.get_jdk_home t in
   Flags.write_sexp "c_flags.sexp" (c_flags os jdk_home);
-  Flags.write_sexp "library_flags.sexp" (library_flags jdk_version jdk_home)
+  Flags.write_sexp "library_flags.sexp" (library_flags os jdk_version jdk_home)
 
 let () = Configurator.V1.main ~name:"camljava_discover" generate_flags
