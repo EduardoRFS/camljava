@@ -10,6 +10,14 @@ jobs:
       matrix:
         system: [ubuntu, macos, windows]
         ocaml: ["4.8.x", "4.12.x"]
+        java: ["8"]
+        include:
+          - system: ubuntu
+            ocaml: "4.12.x"
+            java: "11"
+          - system: ubuntu
+            ocaml: "4.12.x"
+            java: "15"
 
     runs-on: ${{ matrix.system }}-latest
 
@@ -20,6 +28,11 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 14
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: ${{ matrix.java }}
 
       - name: Install esy
         run: npm install -g esy
@@ -40,7 +53,7 @@ jobs:
 
       - uses: esy/github-action@v1
         with:
-          cache-key: ${{ matrix.target }}-${{ hashFiles('esy.lock/index.json') }}
+          cache-key: ${{ matrix.target }}-${{ matrix.java }}-${{ hashFiles('esy.lock/index.json') }}
 
       - name: Run tests
         run: esy dune test
